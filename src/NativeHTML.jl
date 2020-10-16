@@ -50,6 +50,7 @@ function html(f::Function)
     println(io, "<html>")
     task_local_storage(:htmlio, io)
     task_local_storage(:level, 1)
+    task_local_storage(:islastinline, false)
     f()
     println(io, "</html>")
     HTML(take!(io))
@@ -61,6 +62,8 @@ function fragment(f::Function; level::Int = 0)
     io = IOBuffer()
     task_local_storage(:htmlio, io)
     task_local_storage(:level, level)
+    task_local_storage(:islastinline, false)
+    print(io, " " ^ level)
     f()
     HTML(take!(io))
 end
@@ -192,18 +195,20 @@ const PRIMITIVES = Dict(
 
 for (primitive, notvoid) in PRIMITIVES
     eval(quote
-        function $primitive(txt::String = ""; kwargs...)
-            let io = task_local_storage(:htmlio), level = task_local_storage(:level)
-                print(io, " " ^ level, "<", $primitive)
+        function $primitive(txt::String = ""; inline::Bool=false, kwargs...)
+            let io = task_local_storage(:htmlio), level = task_local_storage(:level), islastinline = task_local_storage(:islastinline)
+                print(io, islastinline ? "" : " " ^ level, "<", $primitive)
                 for (arg, val) in kwargs
                     print(io, " ", replacenotallowed(arg))
                     val === nothing || print(io, "=\"", val, "\"")
                 end
-                if txt === "" 
-                    $notvoid ? println(io, "/>") : println(io, ">")
-                else
-                    println(io, ">", txt, "</", $primitive, ">")
+                if !$notvoid
+                    print(io, " />")
+                    return
                 end
+                prf = inline ? print : println
+                txt === "" ? prf(io, " />") : prf(io, ">", txt, "</", $primitive, ">")
+                task_local_storage(:islastinline, inline)
             end
         end
     end)
@@ -228,7 +233,8 @@ for primitive in keys(filter(d->last(d), PRIMITIVES))
                 task_local_storage(:level, level + 1)
                 f()
                 task_local_storage(:level, level)
-                println(io, " " ^ level, "</", $primitive, ">")
+                println(io, task_local_storage(:islastinline) ? "\n" : "", " " ^ level, "</", $primitive, ">")
+                task_local_storage(:islastinline, false)
             end
         end
     end)
@@ -236,7 +242,7 @@ end
 
 function text(txt::String)
     let io = task_local_storage(:htmlio), level = task_local_storage(:level)
-        println(io, " " ^ level, txt)
+        task_local_storage(:islastinline) ? print(io, txt) : println(io, " " ^ level, txt)
     end
 end
 
