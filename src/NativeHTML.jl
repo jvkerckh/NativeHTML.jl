@@ -233,7 +233,6 @@ for primitive in keys(filter(d->last(d), PRIMITIVES))
                 task_local_storage(:level, level + 1)
                 f()
                 task_local_storage(:level, level)
-                println( task_local_storage(:islastinline) )
                 println(io, task_local_storage(:islastinline) ? "\n" : "", " " ^ level, "</", $primitive, ">")
                 task_local_storage(:islastinline, false)
             end
