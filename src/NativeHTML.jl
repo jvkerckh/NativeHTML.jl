@@ -202,13 +202,13 @@ for (primitive, notvoid) in PRIMITIVES
                     print(io, " ", replacenotallowed(arg))
                     val === nothing || print(io, "=\"", val, "\"")
                 end
+                task_local_storage(:islastinline, inline)
+                prf = inline ? print : println
                 if !$notvoid
-                    print(io, " />")
+                    prf(io, " />")
                     return
                 end
-                prf = inline ? print : println
                 txt === "" ? prf(io, " />") : prf(io, ">", txt, "</", $primitive, ">")
-                task_local_storage(:islastinline, inline)
             end
         end
     end)
@@ -233,6 +233,7 @@ for primitive in keys(filter(d->last(d), PRIMITIVES))
                 task_local_storage(:level, level + 1)
                 f()
                 task_local_storage(:level, level)
+                println( task_local_storage(:islastinline) )
                 println(io, task_local_storage(:islastinline) ? "\n" : "", " " ^ level, "</", $primitive, ">")
                 task_local_storage(:islastinline, false)
             end
