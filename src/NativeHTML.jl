@@ -208,7 +208,7 @@ for (primitive, notvoid) in PRIMITIVES
                     prf(io, " />")
                     return
                 end
-                txt === "" ? prf(io, " />") : prf(io, ">", txt, "</", $primitive, ">")
+                prf(io, ">", txt, "</", $primitive, ">")
             end
         end
     end)
